@@ -1,6 +1,6 @@
 # Event Management System
 
-Final project — Object Oriented Programming, NYU (26 Summer).
+Final project for Object Oriented Programming, NYU (26 Summer).
 
 An application for organizing events and managing attendee registrations. An organizer can
 create and edit events, register and cancel attendees, view the attendee list, search and

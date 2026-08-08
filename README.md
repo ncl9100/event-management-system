@@ -13,8 +13,8 @@ Written in plain Java with no external libraries. You only need a JDK (version 8
 
 ## How to run it
 
-If you have never used GitHub or a terminal, see [SETUP.md](SETUP.md) for step by step
-instructions.
+See [SETUP.md](SETUP.md) if you want the step by step version, including how to install the
+JDK.
 
 Windows:
 

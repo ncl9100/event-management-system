@@ -1,22 +1,21 @@
 # How to run this program
 
-For anyone who has not used GitHub or a terminal before. Takes about 5 minutes, and you only
-do steps 1 and 2 once.
+Takes about 5 minutes, and you only do steps 1 and 2 once.
 
 It is plain Java so it works the same on Windows, Mac and Linux.
 
 ## Step 1: Get the files
 
-You do not need a GitHub account and you do not need to install git.
+Clone the repo:
 
-1. On the GitHub page, click the green **Code** button.
-2. Click **Download ZIP**.
-3. Unzip it. On Windows right click the ZIP and pick "Extract All". On Mac just double click
-   it.
-4. Put the folder somewhere you can find it, like your Desktop.
+```
+git clone https://github.com/ncl9100/event-management-system.git
+cd event-management-system
+```
 
-On Windows, make sure you actually extract the ZIP. If you run it from inside the preview
-window it will not work.
+Or download it instead: click the green **Code** button on the GitHub page, pick **Download
+ZIP**, and unzip it. On Windows use right click then "Extract All". Do not run it from inside
+the ZIP preview window, it will not work.
 
 ## Step 2: Install Java
 
@@ -55,23 +54,20 @@ the install did not finish or you need to open a fresh terminal.
 **Windows.** Open the folder and double click `run.bat`. A black window opens, says
 "Compiling..." then "Starting...", and the program runs.
 
-For the GUI version, hold Shift, right click an empty spot in the folder, pick "Open
-PowerShell window here", and type `.\run.bat gui`.
+For the GUI version, hold Shift, right click an empty spot in the folder, pick "Open PowerShell
+window here", and type `.\run.bat gui`.
 
-**Mac or Linux.**
+**Mac or Linux.** Open a terminal in the project folder and run:
 
-1. Open Terminal (on Mac press Cmd+Space and type terminal).
-2. Type `cd ` with a space after it, but do not press Enter yet.
-3. Drag the project folder from Finder onto the Terminal window. It fills in the path.
-4. Press Enter.
-5. Type `bash run.sh` and press Enter.
-
-For the GUI version use `bash run.sh gui`.
+```
+bash run.sh          command line version
+bash run.sh gui      windowed version
+```
 
 ## What you should see
 
-The command line version prints a table of 3 sample events and an `events>` prompt. Type
-`help` to see the commands, `quit` to leave.
+The command line version prints a table of 3 sample events and an `events>` prompt. Type `help`
+to see the commands, `quit` to leave.
 
 The GUI version opens a window with the same 3 events in a table and buttons at the bottom.
 
@@ -87,7 +83,7 @@ Both versions share the same data, so anything you add in one shows up in the ot
 | Window flashes and closes on Windows | Open PowerShell in the folder and run `.\run.bat` there so you can read the error |
 | `Could not find or load main class` | You are in the wrong folder. Make sure you are in the one with `run.bat` in it |
 | `Unsupported class file major version` | Delete the `build` folder and try again |
-| No events show up | Make sure the `data` folder came out of the ZIP. The program still works, you just start empty |
+| No events show up | Make sure the `data` folder is there. The program still works, you just start empty |
 
 ## Starting over
 

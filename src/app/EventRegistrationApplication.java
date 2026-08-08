@@ -1,14 +1,11 @@
 package app;
 
-import javax.swing.UIManager;
-
 import config.ApplicationConfig;
 import repository.EventRepository;
 import repository.FileEventRepository;
 import service.EventService;
 import ui.EventListUI;
-import ui.cli.EventListCLI;
-import ui.gui.EventListGUI;
+import ui.UIFactory;
 
 /**
  * The program's starting point.
@@ -16,7 +13,8 @@ import ui.gui.EventListGUI;
  * It builds the object graph once -- repository, then service, then the chosen
  * top-level UI -- and hands control to that UI. Notice that everything below it
  * is wired through the EventRepository and EventListUI abstractions, so
- * swapping the store or the front end changes only this class.
+ * repository and UI construction are delegated behind abstractions/factories,
+ * keeping startup focused on wiring the application together.
  */
 public class EventRegistrationApplication {
 
@@ -26,7 +24,7 @@ public class EventRegistrationApplication {
     public EventRegistrationApplication(ApplicationConfig config) {
         EventRepository repository = new FileEventRepository(config.getDataFilePath());
         this.eventService = new EventService(repository);
-        this.ui = createUI(config, this.eventService);
+        this.ui = UIFactory.createUI(config.getUiMode(), this.eventService);
     }
 
     /** Starts the configured user interface. */
@@ -40,22 +38,6 @@ public class EventRegistrationApplication {
 
     public EventListUI getUi() {
         return ui;
-    }
-
-    private EventListUI createUI(ApplicationConfig config, EventService service) {
-        if (config.getUiMode() == ApplicationConfig.UiMode.GUI) {
-            useSystemLookAndFeel();
-            return new EventListGUI(service);
-        }
-        return new EventListCLI(service);
-    }
-
-    private void useSystemLookAndFeel() {
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception e) {
-            // A missing look and feel is not worth failing to start over.
-        }
     }
 
     public static void main(String[] args) {

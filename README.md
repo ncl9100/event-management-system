@@ -2,146 +2,131 @@
 
 Final project for Object Oriented Programming, NYU (26 Summer).
 
-An application for organizing events and managing attendee registrations. An organizer can
-create and edit events, register and cancel attendees, view the attendee list, search and
-sort events, and see statistics.
+An app for organizing events and managing attendee registrations. You can create and edit
+events, register and cancel attendees, view the attendee list, search and sort events, and see
+statistics.
 
-Written in plain Java with **no external libraries** — it compiles with `javac` and runs with
-`java`. There is nothing to install beyond a JDK.
+It has two interfaces, a command line one and a Swing GUI. Both use the same classes
+underneath.
 
-Everything in it uses material from the course: classes and objects, inheritance, an abstract
-class, interfaces, static members, `ArrayList`, exceptions, `Scanner`, and Swing with
-`ActionListener`. There are no lambdas, no streams, and no library calls the lectures did not
-cover.
+Written in plain Java with no external libraries. You only need a JDK (version 8 or newer).
 
----
+## How to run it
 
-## Running it
+If you have never used GitHub or a terminal, see [SETUP.md](SETUP.md) for step by step
+instructions.
 
-**New to this? Read [SETUP.md](SETUP.md)** — step-by-step instructions for Windows, macOS and
-Linux, written for someone who has not used GitHub or a terminal before.
-
-**Windows**
+Windows:
 
 ```
-run.bat          starts the command line interface
-run.bat gui      starts the windowed (Swing) interface
+run.bat          command line version
+run.bat gui      windowed version
 ```
 
-**macOS / Linux**
+Mac or Linux:
 
 ```
-./run.sh         starts the command line interface
-./run.sh gui     starts the windowed (Swing) interface
+bash run.sh          command line version
+bash run.sh gui      windowed version
 ```
 
-**By hand**
+Or compile it yourself:
 
 ```
 javac -d build $(find src -name '*.java')
 java -cp build app.EventRegistrationApplication --cli
-java -cp build app.EventRegistrationApplication --gui
 ```
 
-Requires JDK 8 or newer. The source is pure ASCII, so no `-encoding` flag is needed whatever
-your machine's default character set is.
+Events are saved in `data/events.bin`. Three sample events come with the project. Delete that
+file to start empty.
 
-Optional argument: `--data <path>` to use a different data file
-(default `data/events.bin`).
+## Command line reference
 
-Events are stored in `data/events.bin`, written with `ObjectOutputStream`. A few sample events
-ship with the project so there is something on screen the first time you start it. Delete that
-file to begin from empty.
-
----
-
-## The command line interface
-
-The home screen lists the events. From there:
+At the event list:
 
 | Command | What it does |
 |---|---|
 | `list` | show the events |
 | `add` | create a new event |
-| `view <id>` / `edit <id>` | open an event |
+| `view <id>` or `edit <id>` | open an event |
 | `delete <id>` | delete an event (asks first) |
 | `search <text>` | find events by title |
 | `filterby <title\|description\|venue> <text>` | narrow the list |
-| `clearfilter` | show every event again |
+| `clearfilter` | show everything again |
 | `sortby <title\|capacity\|remaining\|start\|end> [asc\|desc]` | reorder the list |
-| `clearsort` | back to stored order |
-| `stats` | statistics for the listed events |
-| `quit` | leave |
+| `clearsort` | back to normal order |
+| `stats` | show statistics |
+| `quit` | exit |
 
 Inside an event: `set <field> <value>`, `show`, `stats`, `reservations`, `save`, `abort`.
-Fields are `title`, `description`, `venuename`, `venueaddress`, `venuedetails`, `start`,
-`end`, `capacity`. Dates are typed as `2026-09-14 18:30`.
+The fields are title, description, venuename, venueaddress, venuedetails, start, end,
+capacity. Dates look like `2026-09-14 18:30`.
 
 Inside the attendee list: `list`, `add`, `edit <row>`, `delete <row>`, `done`, `abort`.
 
-Nothing is written to disk until you `save` the event, so `abort` at any level is always safe.
+Type `help` on any screen to see its commands. Nothing is saved to the file until you `save`
+the event, so `abort` is always safe.
 
----
-
-## The windowed interface
-
-The same four screens as the CLI, built with Swing:
-
-- **EventListGUI** — the event table, with a search box, a sort control, and
-  Create / View-edit / Delete / Statistics buttons.
-- **EventGUI** — the detail form for one event, with a Manage reservations button.
-- **ReservationListGUI** — the attendee table for that event.
-- **ReservationGUI** — the form for one attendee.
-
-Both front ends run on exactly the same service, validation rules and storage. Neither
-GUI class touches a file or decides what is valid — they ask `EventService`.
-
----
-
-## How the code is laid out
+## Project structure
 
 ```
 src/
-  model/         Event, Reservation                      entity objects
-  repository/    EventRepository (interface)             storage abstraction
-                 FileEventRepository                     the file store
-                 RepositoryException
-  service/       EventService                            validation + queries
-                 EventQuery, EventFilterField, EventSortField
-                 EventStatistics
-                 ValidationException
+  model/         Event, Reservation
+  repository/    EventRepository (interface), FileEventRepository, RepositoryException
+  service/       EventService, EventQuery, EventFilterField, EventSortField,
+                 EventStatistics, ValidationException
   ui/            EventListUI (interface), DateTimeFormats
-  ui/cli/        AbstractCLI, Command,                   command line screens
-                 EventListCLI, EventCLI,
+  ui/cli/        AbstractCLI, Command, EventListCLI, EventCLI,
                  ReservationListCLI, ReservationCLI
-  ui/gui/        EventListGUI, EventGUI,                 Swing screens
-                 ReservationListGUI, ReservationGUI
-  config/        ApplicationConfig                       startup choices
-  app/           EventRegistrationApplication            main()
+  ui/gui/        EventListGUI, EventGUI, ReservationListGUI, ReservationGUI
+  config/        ApplicationConfig
+  app/           EventRegistrationApplication (has main)
 data/
-  events.bin                                             the stored events
+  events.bin     saved events
 ```
 
-`DESIGN-NOTES.md` explains how this maps back to the class diagram, which use case each
-class implements, and where the SOLID principles show up.
-
----
+The GUI classes match the CLI classes one for one. Neither of them opens files or decides what
+is valid, they both go through `EventService`.
 
 ## Validation rules
 
-**An event needs**
+An event needs a title, a venue name, a start and end date with the end after the start, and a
+capacity of at least 1. Capacity can never be lower than the number of people already
+registered.
 
-- a title (1–120 characters)
-- a venue name
-- a start and an end date, with the end after the start
-- a capacity of at least 1, never lower than the number of people already registered
+A reservation needs a first and last name, a valid email that is not already registered for
+that event, and a phone number with at least 7 digits if you enter one.
 
-**A reservation needs**
+The app checks if an event is full before opening the attendee form, so you get told straight
+away instead of filling in a form that gets rejected.
 
-- a first name and a last name
-- a valid email address, not already registered for that event
-- a phone number containing at least 7 digits, if one is given at all
-- a registration date
+## Design decisions
 
-Capacity is checked before the attendee form opens, so you are told the event is full
-rather than filling in a form that will be rejected.
+The project brief left the algorithm and the persistence approach up to us.
+
+**Saving data.** We use `ObjectOutputStream` to write all the events to one file,
+`data/events.bin`. `Event` and `Reservation` implement `Serializable`. This is the same
+approach as the Password Keeper example from class. Every save rewrites the whole file, which
+is fine for this many events.
+
+**Sorting.** `EventService` uses an insertion sort instead of `Collections.sort`. The list is
+small and usually almost sorted already, which is the case insertion sort is best at, and it
+is stable so events that tie keep their original order.
+
+**Searching.** A plain loop with a case insensitive `contains` check, so searching for "gala"
+finds "Annual Gala Dinner".
+
+## Differences from the class diagram
+
+Two things changed while we were coding:
+
+1. `JsonEventRepository` is now `FileEventRepository` and there is no `JsonParser`. Doing JSON
+   without a library meant writing a 300 line parser, which was way more complicated than
+   anything else in the project. Switching to `ObjectOutputStream` only changed this one class
+   because everything else goes through the `EventRepository` interface.
+
+2. We added an `EventStatistics` class. The brief asks for event statistics and UC-04 is "View
+   Event Details and Statistics", but there was no class for it on the diagram.
+
+We also added an `EventListUI` interface so `main` can start either the CLI or the GUI, and a
+`deleteEvent` method on the repository since UC-06 needs it.

@@ -136,7 +136,7 @@ public class EventGUI extends JDialog {
         addRow(form, "Capacity", txtCapacity);
         addRow(form, "Reservations", lblReservations);
 
-        btnReservations = new JButton("Manage reservations…");
+        btnReservations = new JButton("Manage reservations...");
         btnSave = new JButton("Save");
         btnAbort = new JButton("Cancel");
 
@@ -310,7 +310,7 @@ public class EventGUI extends JDialog {
     private void showErrors(List<String> errors) {
         StringBuilder message = new StringBuilder("This event cannot be saved yet:\n\n");
         for (String error : errors) {
-            message.append("  • ").append(error).append('\n');
+            message.append("  - ").append(error).append('\n');
         }
         JOptionPane.showMessageDialog(this, message.toString(),
                 "Please check the details", JOptionPane.WARNING_MESSAGE);

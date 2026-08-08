@@ -2,6 +2,10 @@
 build/
 *.class
 
+# operating system junk
+.DS_Store
+Thumbs.db
+
 # editors
 .idea/
 .vscode/

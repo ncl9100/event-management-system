@@ -234,7 +234,7 @@ public class ReservationGUI extends JDialog {
     private void showErrors(String heading, List<String> errors) {
         StringBuilder message = new StringBuilder(heading + ":\n\n");
         for (String error : errors) {
-            message.append("  • ").append(error).append('\n');
+            message.append("  - ").append(error).append('\n');
         }
         JOptionPane.showMessageDialog(this, message.toString(),
                 "Please check the details", JOptionPane.WARNING_MESSAGE);

@@ -121,7 +121,7 @@ public abstract class AbstractCLI {
             if (width <= 1) {
                 return safe.substring(0, width);
             }
-            return safe.substring(0, width - 1) + "…";
+            return safe.substring(0, width - 1) + "...";
         }
         StringBuilder builder = new StringBuilder(safe);
         while (builder.length() < width) {

@@ -1,0 +1,14 @@
+# Keep line endings correct on every machine.
+# Without this, a shell script edited on Windows gets Windows line endings and
+# then fails on macOS with a confusing "bad interpreter" or "\r" error.
+
+*           text=auto
+*.sh        text eol=lf
+*.command   text eol=lf
+*.bat       text eol=crlf
+*.java      text eol=lf
+*.md        text eol=lf
+
+# Never let git touch these.
+*.png       binary
+*.bin       binary

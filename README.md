@@ -18,6 +18,9 @@ cover.
 
 ## Running it
 
+**New to this? Read [SETUP.md](SETUP.md)** — step-by-step instructions for Windows, macOS and
+Linux, written for someone who has not used GitHub or a terminal before.
+
 **Windows**
 
 ```
@@ -39,6 +42,9 @@ javac -d build $(find src -name '*.java')
 java -cp build app.EventRegistrationApplication --cli
 java -cp build app.EventRegistrationApplication --gui
 ```
+
+Requires JDK 8 or newer. The source is pure ASCII, so no `-encoding` flag is needed whatever
+your machine's default character set is.
 
 Optional argument: `--data <path>` to use a different data file
 (default `data/events.bin`).

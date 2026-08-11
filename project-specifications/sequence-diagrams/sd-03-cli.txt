@@ -1,0 +1,65 @@
+@startuml
+title SD-03A — Filter Events (CLI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-11 — Filter Events
+endlegend
+
+actor Organizer
+boundary "eventListCLI : EventListCLI" as EventListCLI
+control "eventService : EventService" as EventService
+entity "query : EventQuery" as EventQuery
+database "repository : EventRepository\n(FileEventRepository)" as EventRepository
+
+Organizer -> EventListCLI : enter "filterby <field> <text>"
+activate EventListCLI
+EventListCLI -> EventListCLI : handleFilterBy(command)
+activate EventListCLI
+
+alt command.argCount() < 2
+    EventListCLI --> Organizer : display usage error
+else EventFilterField.fromLabel(...) returns null
+    EventListCLI --> Organizer : display supported fields
+else Valid field and text
+    note right of EventListCLI
+    handleFilterBy() assigns query.filterField
+    and query.filterValue.
+    end note
+    EventListCLI -> EventListCLI : refresh()
+    activate EventListCLI
+    EventListCLI -> EventService : getEvents(Optional.of(query))
+    activate EventService
+    EventService -> EventRepository : loadAll()
+    activate EventRepository
+    EventRepository --> EventService : List<Event>
+    deactivate EventRepository
+    EventService -> EventService : applyFilter(result, q)
+    activate EventService
+    note right of EventService
+    fieldValueOf(e, query.filterField) supplies TITLE,
+    DESCRIPTION, or combined VENUE text.
+    end note
+    EventService --> EventService : filtered List<Event>
+    deactivate EventService
+    EventService --> EventListCLI : filtered List<Event>
+    deactivate EventService
+    EventListCLI -> EventListCLI : showEvents()
+    activate EventListCLI
+    EventListCLI --> Organizer : display filtered event list
+    deactivate EventListCLI
+    deactivate EventListCLI
+end
+
+deactivate EventListCLI
+deactivate EventListCLI
+
+@enduml

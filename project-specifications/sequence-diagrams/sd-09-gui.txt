@@ -1,0 +1,91 @@
+@startuml
+title SD-09B — View Event Reservations (GUI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-07 — View Event Reservations
+endlegend
+
+actor Organizer
+boundary "eventGUI : EventGUI" as EventGUI
+boundary "reservationListGUI : ReservationListGUI" as ReservationListGUI
+entity "event : Event" as Event
+
+Organizer -> EventGUI : click "Manage reservations..."
+activate EventGUI
+EventGUI -> EventGUI : manageReservations()
+activate EventGUI
+EventGUI -> EventGUI : readForm()
+activate EventGUI
+EventGUI --> EventGUI : current form copied to event
+deactivate EventGUI
+EventGUI -> ReservationListGUI : run(event)
+activate ReservationListGUI
+ReservationListGUI -> Event : deepCopy()
+activate Event
+Event --> ReservationListGUI : working Event copy
+deactivate Event
+ReservationListGUI -> ReservationListGUI : showReservations()
+activate ReservationListGUI
+ReservationListGUI --> Organizer : display attendee table
+deactivate ReservationListGUI
+ReservationListGUI --> Organizer : reservation dialog visible
+
+loop While dialog remains open (until Done or Discard changes)
+    alt click "Register attendee"
+        ref over Organizer, Event
+        SD-10B — Add Reservation (GUI)
+        end ref
+    else click "Edit"
+        ref over Organizer, Event
+        SD-11B — Edit Reservation (GUI)
+        end ref
+    else click "Cancel registration"
+        ref over Organizer, Event
+        SD-12B — Delete Reservation (GUI)
+        end ref
+    else click "Done"
+        Organizer -> ReservationListGUI : click "Done"
+        ReservationListGUI -> ReservationListGUI : keepChanges()
+        activate ReservationListGUI
+        ReservationListGUI --> ReservationListGUI : kept=true; dispose()
+        deactivate ReservationListGUI
+    else click "Discard changes"
+        Organizer -> ReservationListGUI : click "Discard changes"
+        ReservationListGUI -> ReservationListGUI : discardChanges()
+        activate ReservationListGUI
+        ReservationListGUI --> ReservationListGUI : kept=false; dispose()
+        deactivate ReservationListGUI
+    end
+end
+
+alt kept == true
+    ReservationListGUI --> EventGUI : Optional.of(working Event)
+else kept == false
+    ReservationListGUI --> EventGUI : Optional.empty()
+end
+deactivate ReservationListGUI
+
+alt Updated Event returned
+    EventGUI -> Event : setReservations(updated.get().getReservations())
+    activate Event
+    Event --> EventGUI : reservations adopted
+    deactivate Event
+end
+EventGUI -> EventGUI : showEvent()
+activate EventGUI
+EventGUI --> Organizer : refreshed event form/statistics
+deactivate EventGUI
+
+deactivate EventGUI
+deactivate EventGUI
+
+@enduml

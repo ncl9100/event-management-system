@@ -1,0 +1,69 @@
+@startuml
+title SD-13B — View System Statistics (GUI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-18 — View System Statistics
+endlegend
+
+actor Organizer
+boundary "eventListGUI : EventListGUI" as EventListGUI
+control "stats : EventStatistics" as EventStatistics
+entity "displayedEvents : List<Event>" as DisplayedEvents
+
+ref over Organizer, DisplayedEvents
+SD-01B — Browse Events (GUI)
+displayedEvents has already been loaded by refresh()
+end ref
+
+Organizer -> EventListGUI : click "Statistics"
+activate EventListGUI
+EventListGUI -> EventListGUI : showStatistics()
+activate EventListGUI
+EventListGUI -> EventStatistics : new EventStatistics(displayedEvents)
+activate EventStatistics
+EventStatistics --> EventListGUI : stats object ready
+deactivate EventStatistics
+
+EventListGUI -> EventStatistics : getBusiestEvent()
+activate EventStatistics
+EventStatistics --> EventListGUI : busiest Event / null
+deactivate EventStatistics
+EventListGUI -> EventStatistics : getNextUpcomingEvent()
+activate EventStatistics
+EventStatistics --> EventListGUI : next Event / null
+deactivate EventStatistics
+EventListGUI -> EventStatistics : getTotalEvents() / getTotalReservations()
+activate EventStatistics
+EventStatistics --> EventListGUI : event/reservation totals
+deactivate EventStatistics
+EventListGUI -> EventStatistics : getTotalCapacity() / getTotalRemainingCapacity()
+activate EventStatistics
+EventStatistics --> EventListGUI : capacity totals
+deactivate EventStatistics
+EventListGUI -> EventStatistics : getOverallOccupancyRate() / getAverageOccupancyRate()
+activate EventStatistics
+EventStatistics --> EventListGUI : occupancy rates
+deactivate EventStatistics
+EventListGUI -> EventStatistics : getFullEventCount() / getEmptyEventCount()
+activate EventStatistics
+EventStatistics --> EventListGUI : full / empty counts
+deactivate EventStatistics
+EventListGUI -> EventStatistics : getUpcomingEventCount() / getInProgressEventCount() / getPastEventCount()
+activate EventStatistics
+EventStatistics --> EventListGUI : time-state counts
+deactivate EventStatistics
+EventListGUI --> Organizer : JOptionPane.showMessageDialog(..., "Event statistics", ...)
+
+deactivate EventListGUI
+deactivate EventListGUI
+
+@enduml

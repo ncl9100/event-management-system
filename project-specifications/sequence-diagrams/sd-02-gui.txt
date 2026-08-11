@@ -1,0 +1,65 @@
+@startuml
+title SD-02B — Search for Event (GUI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-03 — Search for Event
+endlegend
+
+actor Organizer
+boundary "eventListGUI : EventListGUI" as EventListGUI
+control "eventService : EventService" as EventService
+entity "query : EventQuery" as EventQuery
+database "repository : EventRepository\n(FileEventRepository)" as EventRepository
+
+Organizer -> EventListGUI : select Title, enter text, click "Search"
+activate EventListGUI
+EventListGUI -> EventListGUI : applyFilter()
+activate EventListGUI
+
+alt txtFilter text is empty
+    EventListGUI -> EventQuery : clearFilter()
+    activate EventQuery
+    EventQuery --> EventListGUI : filter cleared
+    deactivate EventQuery
+else Search text provided
+    note right of EventListGUI
+    applyFilter() assigns query.filterField from
+    cboFilterField and query.filterValue from txtFilter.
+    For UC-03 the selected field is TITLE.
+    end note
+end
+
+EventListGUI -> EventListGUI : refresh()
+activate EventListGUI
+EventListGUI -> EventService : getEvents(Optional.of(query))
+activate EventService
+EventService -> EventRepository : loadAll()
+activate EventRepository
+EventRepository --> EventService : List<Event>
+deactivate EventRepository
+EventService -> EventService : applyFilter(result, q)
+activate EventService
+EventService --> EventService : filtered List<Event>
+deactivate EventService
+EventService --> EventListGUI : filtered List<Event>
+deactivate EventService
+EventListGUI -> EventListGUI : setStatus(event count + query)
+activate EventListGUI
+EventListGUI --> EventListGUI : status updated
+deactivate EventListGUI
+EventListGUI --> Organizer : display search results
+deactivate EventListGUI
+
+deactivate EventListGUI
+deactivate EventListGUI
+
+@enduml

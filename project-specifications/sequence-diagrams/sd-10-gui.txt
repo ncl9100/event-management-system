@@ -1,0 +1,129 @@
+@startuml
+title SD-10B — Add Reservation (GUI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-08 — Add Reservation
+UC-15 — Check Available Capacity
+UC-16 — Validate Attendee Information
+endlegend
+
+actor Organizer
+boundary "reservationListGUI : ReservationListGUI" as ReservationListGUI
+boundary "reservationGUI : ReservationGUI" as ReservationGUI
+control "eventService : EventService" as EventService
+entity "event : Event" as Event
+entity "reservation : Reservation" as Reservation
+
+Organizer -> ReservationListGUI : click "Register attendee"
+activate ReservationListGUI
+ReservationListGUI -> ReservationListGUI : addReservation()
+activate ReservationListGUI
+ReservationListGUI -> EventService : canAddReservation(event) <<static>>
+activate EventService
+EventService --> ReservationListGUI : true / false
+deactivate EventService
+
+alt No available capacity
+    ReservationListGUI --> Organizer : JOptionPane.showMessageDialog("No room")
+else Capacity available
+    ReservationListGUI -> ReservationGUI : create(event)
+    activate ReservationGUI
+    ReservationGUI -> Reservation : new Reservation()
+    activate Reservation
+    Reservation --> ReservationGUI : new reservation
+    deactivate Reservation
+    ReservationGUI -> Reservation : setDateRegistered(LocalDateTime.now())
+    activate Reservation
+    Reservation --> ReservationGUI : registration date set
+    deactivate Reservation
+    ReservationGUI -> ReservationGUI : showDialog()
+    activate ReservationGUI
+    ReservationGUI -> ReservationGUI : showReservation()
+    activate ReservationGUI
+    ReservationGUI --> ReservationGUI : form populated
+    deactivate ReservationGUI
+    ReservationGUI --> Organizer : display reservation dialog
+
+    loop While dialog remains open (until valid Save or Cancel)
+        alt Organizer edits fields
+            Organizer -> ReservationGUI : change attendee fields
+        else Organizer clicks "Save"
+            Organizer -> ReservationGUI : click "Save"
+            ReservationGUI -> ReservationGUI : save()
+            activate ReservationGUI
+            ReservationGUI -> ReservationGUI : readForm()
+            activate ReservationGUI
+            ReservationGUI --> ReservationGUI : Reservation fields updated
+            deactivate ReservationGUI
+            ReservationGUI -> EventService : validateReservation(reservation) <<static>>
+            activate EventService
+            EventService --> ReservationGUI : List<String> errors
+            deactivate EventService
+            alt Validation errors exist
+                ReservationGUI -> ReservationGUI : showErrors(...)
+                activate ReservationGUI
+                ReservationGUI --> Organizer : validation dialog
+                deactivate ReservationGUI
+            else Attendee information valid
+                ReservationGUI -> ReservationGUI : isDuplicateEmail()
+                activate ReservationGUI
+                ReservationGUI --> ReservationGUI : duplicate? true / false
+                deactivate ReservationGUI
+                alt Duplicate email
+                    ReservationGUI --> Organizer : already-registered warning
+                else Unique email
+                    ReservationGUI --> ReservationGUI : saved=true; dispose()
+                end
+            end
+            deactivate ReservationGUI
+        else Organizer clicks "Cancel"
+            Organizer -> ReservationGUI : click "Cancel"
+            ReservationGUI -> ReservationGUI : abort()
+            activate ReservationGUI
+            ReservationGUI --> ReservationGUI : saved=false; dispose()
+            deactivate ReservationGUI
+        end
+    end
+
+    alt saved == true
+        ReservationGUI --> ReservationGUI : Optional.of(reservation)
+    else saved == false
+        ReservationGUI --> ReservationGUI : Optional.empty()
+    end
+    deactivate ReservationGUI
+    ReservationGUI --> ReservationListGUI : Optional<Reservation>
+    deactivate ReservationGUI
+
+    alt created.isPresent()
+        ReservationListGUI -> Event : getReservations().add(reservation)
+        activate Event
+        Event --> ReservationListGUI : reservation added
+        deactivate Event
+    else created.isPresent() == false
+        ReservationListGUI --> Organizer : no reservation added
+    end
+
+    ReservationListGUI -> ReservationListGUI : showReservations()
+    activate ReservationListGUI
+    ReservationListGUI --> Organizer : updated attendee table
+    deactivate ReservationListGUI
+end
+
+note over ReservationListGUI, Event
+Only the temporary Event copy changes here.
+Persistence occurs when the enclosing event is saved.
+end note
+
+deactivate ReservationListGUI
+deactivate ReservationListGUI
+
+@enduml

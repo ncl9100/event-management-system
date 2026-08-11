@@ -1,0 +1,81 @@
+@startuml
+title SD-13A — View System Statistics (CLI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-18 — View System Statistics
+endlegend
+
+actor Organizer
+boundary "eventListCLI : EventListCLI" as EventListCLI
+control "stats : EventStatistics" as EventStatistics
+entity "displayedEvents : List<Event>" as DisplayedEvents
+
+ref over Organizer, DisplayedEvents
+SD-01A — Browse Events (CLI)
+displayedEvents has already been loaded by refresh()
+end ref
+
+Organizer -> EventListCLI : enter "stats"
+activate EventListCLI
+EventListCLI -> EventListCLI : showStatistics()
+activate EventListCLI
+EventListCLI -> EventStatistics : new EventStatistics(displayedEvents)
+activate EventStatistics
+EventStatistics --> EventListCLI : stats object ready
+deactivate EventStatistics
+
+EventListCLI -> EventStatistics : getTotalEvents()
+activate EventStatistics
+EventStatistics --> EventListCLI : total events
+deactivate EventStatistics
+EventListCLI -> EventStatistics : getTotalReservations()
+activate EventStatistics
+EventStatistics --> EventListCLI : total reservations
+deactivate EventStatistics
+EventListCLI -> EventStatistics : getTotalCapacity()
+activate EventStatistics
+EventStatistics --> EventListCLI : total capacity
+deactivate EventStatistics
+EventListCLI -> EventStatistics : getTotalRemainingCapacity()
+activate EventStatistics
+EventStatistics --> EventListCLI : remaining capacity
+deactivate EventStatistics
+EventListCLI -> EventStatistics : getOverallOccupancyRate()
+activate EventStatistics
+EventStatistics --> EventListCLI : overall occupancy
+deactivate EventStatistics
+EventListCLI -> EventStatistics : getAverageOccupancyRate()
+activate EventStatistics
+EventStatistics --> EventListCLI : average occupancy
+deactivate EventStatistics
+EventListCLI -> EventStatistics : getFullEventCount() / getEmptyEventCount()
+activate EventStatistics
+EventStatistics --> EventListCLI : full / empty counts
+deactivate EventStatistics
+EventListCLI -> EventStatistics : getUpcomingEventCount() / getInProgressEventCount() / getPastEventCount()
+activate EventStatistics
+EventStatistics --> EventListCLI : time-state counts
+deactivate EventStatistics
+EventListCLI -> EventStatistics : getBusiestEvent()
+activate EventStatistics
+EventStatistics --> EventListCLI : busiest Event / null
+deactivate EventStatistics
+EventListCLI -> EventStatistics : getNextUpcomingEvent()
+activate EventStatistics
+EventStatistics --> EventListCLI : next Event / null
+deactivate EventStatistics
+EventListCLI --> Organizer : display statistics summary
+
+deactivate EventListCLI
+deactivate EventListCLI
+
+@enduml

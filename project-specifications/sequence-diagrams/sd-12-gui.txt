@@ -1,0 +1,67 @@
+@startuml
+title SD-12B — Delete Reservation (GUI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-10 — Delete Reservation
+UC-17 — Confirm Reservation Deletion
+endlegend
+
+actor Organizer
+boundary "reservationListGUI : ReservationListGUI" as ReservationListGUI
+entity "event : Event" as Event
+entity "reservation : Reservation" as Reservation
+
+Organizer -> ReservationListGUI : select attendee and click "Cancel registration"
+activate ReservationListGUI
+ReservationListGUI -> ReservationListGUI : deleteReservation()
+activate ReservationListGUI
+ReservationListGUI -> ReservationListGUI : selectedIndex()
+activate ReservationListGUI
+ReservationListGUI --> ReservationListGUI : index / -1
+deactivate ReservationListGUI
+
+alt index < 0
+    ReservationListGUI --> Organizer : selection message already displayed
+else Valid selection
+    ReservationListGUI -> Event : getReservations().get(index)
+    activate Event
+    Event --> ReservationListGUI : target Reservation
+    deactivate Event
+    ReservationListGUI -> Reservation : getFullName()
+    activate Reservation
+    Reservation --> ReservationListGUI : attendee name
+    deactivate Reservation
+    ReservationListGUI --> Organizer : JOptionPane.showConfirmDialog(...)
+    Organizer --> ReservationListGUI : YES / NO
+    alt answer != YES_OPTION
+        ReservationListGUI --> Organizer : leave reservation unchanged
+    else answer == YES_OPTION
+        ReservationListGUI -> Event : getReservations().remove(index)
+        activate Event
+        Event --> ReservationListGUI : reservation removed
+        deactivate Event
+        ReservationListGUI -> ReservationListGUI : showReservations()
+        activate ReservationListGUI
+        ReservationListGUI --> Organizer : updated attendee table
+        deactivate ReservationListGUI
+    end
+end
+
+note over ReservationListGUI, Event
+Deletion affects only the temporary Event copy.
+Persistence occurs when the enclosing event is saved.
+end note
+
+deactivate ReservationListGUI
+deactivate ReservationListGUI
+
+@enduml

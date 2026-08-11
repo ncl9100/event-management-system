@@ -1,0 +1,72 @@
+@startuml
+title SD-12A — Delete Reservation (CLI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-10 — Delete Reservation
+UC-17 — Confirm Reservation Deletion
+endlegend
+
+actor Organizer
+boundary "reservationListCLI : ReservationListCLI" as ReservationListCLI
+entity "event : Event" as Event
+entity "reservation : Reservation" as Reservation
+
+Organizer -> ReservationListCLI : enter "delete <row>" / "cancel <row>"
+activate ReservationListCLI
+ReservationListCLI -> ReservationListCLI : handleDelete(command)
+activate ReservationListCLI
+ReservationListCLI -> ReservationListCLI : readIndex(command)
+activate ReservationListCLI
+ReservationListCLI --> ReservationListCLI : index / -1
+deactivate ReservationListCLI
+
+alt index < 0
+    ReservationListCLI --> Organizer : row error already displayed
+else Valid row
+    ReservationListCLI -> Event : getReservations().get(index)
+    activate Event
+    Event --> ReservationListCLI : target Reservation
+    deactivate Event
+    ReservationListCLI -> Reservation : getFullName()
+    activate Reservation
+    Reservation --> ReservationListCLI : attendee name
+    deactivate Reservation
+    ReservationListCLI -> ReservationListCLI : confirm("Cancel the reservation for ... ?")
+    activate ReservationListCLI
+    ReservationListCLI --> Organizer : confirmation prompt
+    Organizer --> ReservationListCLI : yes / no
+    ReservationListCLI --> ReservationListCLI : confirmed? true / false
+    deactivate ReservationListCLI
+    alt Not confirmed
+        ReservationListCLI --> Organizer : "Nothing was cancelled."
+    else Confirmed
+        ReservationListCLI -> Event : getReservations().remove(index)
+        activate Event
+        Event --> ReservationListCLI : reservation removed
+        deactivate Event
+        ReservationListCLI --> Organizer : cancellation message
+        ReservationListCLI -> ReservationListCLI : showReservations()
+        activate ReservationListCLI
+        ReservationListCLI --> Organizer : updated attendee list
+        deactivate ReservationListCLI
+    end
+end
+
+note over ReservationListCLI, Event
+Deletion affects only the working Event copy.
+Persistence occurs when the enclosing event is saved.
+end note
+
+deactivate ReservationListCLI
+deactivate ReservationListCLI
+
+@enduml

@@ -1,0 +1,164 @@
+@startuml
+title SD-07A — Edit Event (CLI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-05 — Edit Event
+UC-13 — Validate Event Information
+endlegend
+
+actor Organizer
+boundary "eventListCLI : EventListCLI" as EventListCLI
+boundary "eventCLI : EventCLI" as EventCLI
+control "eventService : EventService" as EventService
+entity "event : Event" as Event
+database "repository : EventRepository\n(FileEventRepository)" as EventRepository
+
+Organizer -> EventListCLI : enter "edit <id>"
+activate EventListCLI
+EventListCLI -> EventListCLI : handleViewOrEdit(command)
+activate EventListCLI
+EventListCLI -> EventListCLI : readEvent(command)
+activate EventListCLI
+EventListCLI -> EventService : getEventById(id)
+activate EventService
+EventService -> EventRepository : loadAll()
+activate EventRepository
+EventRepository --> EventService : List<Event>
+deactivate EventRepository
+EventService --> EventListCLI : Optional<Event>
+deactivate EventService
+EventListCLI --> EventListCLI : Optional<Event>
+deactivate EventListCLI
+
+alt Event not found
+    EventListCLI --> Organizer : display lookup error
+else Event found
+    EventListCLI -> EventCLI : edit(event)
+    activate EventCLI
+    EventCLI -> Event : deepCopy()
+    activate Event
+    Event --> EventCLI : working Event copy
+    deactivate Event
+    EventCLI -> EventCLI : editLoop("Event <id>")
+    activate EventCLI
+
+    loop While event is not accepted and organizer has not aborted
+        EventCLI --> Organizer : prompt "event> "
+        Organizer -> EventCLI : enter command
+        alt command = "set <field> <value>"
+            EventCLI -> EventCLI : handleSet(command)
+            activate EventCLI
+            EventCLI --> Organizer : field updated / input error
+            deactivate EventCLI
+        else command = "reservations"
+            EventCLI -> EventCLI : handleReservations()
+            activate EventCLI
+            ref over Organizer, Event
+            SD-09A — View Event Reservations (CLI)
+            end ref
+            deactivate EventCLI
+        else command = "show"
+            EventCLI -> EventCLI : showEvent()
+            activate EventCLI
+            EventCLI --> Organizer : current event
+            deactivate EventCLI
+        else command = "stats"
+            EventCLI -> EventCLI : showStatistics()
+            activate EventCLI
+            EventCLI --> Organizer : event statistics
+            deactivate EventCLI
+        else command = "save"
+            EventCLI -> EventCLI : trySave()
+            activate EventCLI
+            EventCLI -> EventService : validateEvent(event) <<static>>
+            activate EventService
+            EventService --> EventCLI : List<String> errors
+            deactivate EventService
+            alt Validation errors exist
+                EventCLI --> Organizer : printErrors(errors)
+                EventCLI --> EventCLI : false
+            else No validation errors
+                EventCLI --> Organizer : "Event accepted."
+                EventCLI --> EventCLI : true
+            end
+            deactivate EventCLI
+        else command = abort / cancel / quit
+            EventCLI --> Organizer : "Aborted. No changes were kept."
+        else other command
+            EventCLI --> Organizer : unknown-command/help output
+        end
+    end
+
+    alt Organizer successfully saved edited event
+        EventCLI --> EventCLI : Optional.of(event)
+    else Organizer aborted editing
+        EventCLI --> EventCLI : Optional.empty()
+    end
+    deactivate EventCLI
+    EventCLI --> EventListCLI : Optional<Event>
+    deactivate EventCLI
+
+    alt edited.isPresent()
+        EventListCLI -> EventService : updateEvent(editedEvent)
+        activate EventService
+        EventService -> EventService : validateEvent(editedEvent)
+        activate EventService
+        EventService --> EventService : no errors / errors
+        deactivate EventService
+        alt ValidationException
+            EventService --> EventListCLI : throw ValidationException
+            EventListCLI --> Organizer : display save errors
+        else Event valid
+            EventService -> EventRepository : updateEvent(editedEvent)
+            activate EventRepository
+            EventRepository -> EventRepository : loadAll()
+            activate EventRepository
+            EventRepository --> EventRepository : List<Event>
+            deactivate EventRepository
+            EventRepository -> Event : deepCopy()
+            activate Event
+            Event --> EventRepository : replacement copy
+            deactivate Event
+            opt matching id exists
+                EventRepository -> EventRepository : saveAll(events)
+                activate EventRepository
+                EventRepository --> EventRepository : persisted
+                deactivate EventRepository
+            end
+            EventRepository --> EventService : updated = true / false
+            deactivate EventRepository
+            EventService -> EventRepository : loadAll()
+            activate EventRepository
+            EventRepository --> EventService : updated List<Event>
+            deactivate EventRepository
+            EventService --> EventListCLI : updated = true / false
+            alt updated == true
+                EventListCLI --> Organizer : saved-event message
+            else updated == false
+                EventListCLI --> Organizer : event-no-longer-exists message
+            end
+        end
+        deactivate EventService
+    else edited.isPresent() == false
+        EventListCLI --> Organizer : no changes saved
+    end
+
+    ref over Organizer, EventRepository
+    SD-01A — Browse Events (CLI)
+    handleViewOrEdit() calls refresh() before returning
+    end ref
+end
+
+deactivate EventListCLI
+deactivate EventListCLI
+
+@enduml

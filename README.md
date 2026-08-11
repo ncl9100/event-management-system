@@ -115,18 +115,3 @@ is stable so events that tie keep their original order.
 
 **Searching.** A plain loop with a case insensitive `contains` check, so searching for "gala"
 finds "Annual Gala Dinner".
-
-## Differences from the class diagram
-
-Two things changed while we were coding:
-
-1. `JsonEventRepository` is now `FileEventRepository` and there is no `JsonParser`. Doing JSON
-   without a library meant writing a 300 line parser, which was way more complicated than
-   anything else in the project. Switching to `ObjectOutputStream` only changed this one class
-   because everything else goes through the `EventRepository` interface.
-
-2. We added an `EventStatistics` class. The brief asks for event statistics and UC-04 is "View
-   Event Details and Statistics", but there was no class for it on the diagram.
-
-We also added an `EventListUI` interface so `main` can start either the CLI or the GUI, and a
-`deleteEvent` method on the repository since UC-06 needs it.

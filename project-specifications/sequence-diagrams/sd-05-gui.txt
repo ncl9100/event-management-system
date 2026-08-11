@@ -1,0 +1,84 @@
+@startuml
+title SD-05B — View Event Details and Statistics (GUI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-04 — View Event Details and Statistics
+endlegend
+
+actor Organizer
+boundary "eventListGUI : EventListGUI" as EventListGUI
+boundary "eventGUI : EventGUI" as EventGUI
+control "EventStatistics" as EventStatistics
+entity "event : Event" as Event
+
+Organizer -> EventListGUI : select event and click "View / edit"
+activate EventListGUI
+EventListGUI -> EventListGUI : viewEvent()
+activate EventListGUI
+EventListGUI -> EventListGUI : selectedEvent()
+activate EventListGUI
+EventListGUI --> EventListGUI : selected Event / null
+deactivate EventListGUI
+
+alt selectedEvent() returns null
+    EventListGUI --> Organizer : selection message already displayed
+else Event selected
+    EventListGUI -> EventGUI : edit(selectedEvent)
+    activate EventGUI
+    EventGUI -> Event : deepCopy()
+    activate Event
+    Event --> EventGUI : working Event copy
+    deactivate Event
+    EventGUI -> EventGUI : showDialog()
+    activate EventGUI
+    EventGUI -> EventGUI : showEvent()
+    activate EventGUI
+    EventGUI -> EventGUI : showStatistics()
+    activate EventGUI
+    EventGUI -> EventStatistics : durationInMinutesOf(event)
+    activate EventStatistics
+    EventStatistics --> EventGUI : duration minutes
+    deactivate EventStatistics
+    EventGUI -> EventStatistics : occupancyRateOf(event)
+    activate EventStatistics
+    EventStatistics --> EventGUI : occupancy rate
+    deactivate EventStatistics
+    EventGUI -> EventStatistics : describeTimeUntilStart(event)
+    activate EventStatistics
+    EventStatistics --> EventGUI : timing description
+    deactivate EventStatistics
+    EventGUI --> EventGUI : statistics label updated
+    deactivate EventGUI
+    EventGUI --> EventGUI : form populated
+    deactivate EventGUI
+    EventGUI --> Organizer : display event dialog with details/statistics
+
+    Organizer -> EventGUI : click "Cancel"
+    EventGUI -> EventGUI : abort()
+    activate EventGUI
+    EventGUI --> EventGUI : saved=false; dispose()
+    deactivate EventGUI
+    EventGUI --> EventGUI : Optional.empty()
+    deactivate EventGUI
+    EventGUI --> EventListGUI : Optional.empty()
+    deactivate EventGUI
+
+    ref over Organizer, EventListGUI
+    SD-01B — Browse Events (GUI)
+    viewEvent() calls refresh() after the dialog closes
+    end ref
+end
+
+deactivate EventListGUI
+deactivate EventListGUI
+
+@enduml

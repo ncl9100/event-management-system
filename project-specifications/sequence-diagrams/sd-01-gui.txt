@@ -1,0 +1,55 @@
+@startuml
+title SD-01B — Browse Events (GUI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-02 — Browse Events
+endlegend
+
+actor Organizer
+boundary "eventListGUI : EventListGUI" as EventListGUI
+control "eventService : EventService" as EventService
+database "repository : EventRepository\n(FileEventRepository)" as EventRepository
+
+Organizer -> EventListGUI : run()
+activate EventListGUI
+
+EventListGUI -> EventListGUI : refresh()
+activate EventListGUI
+EventListGUI -> EventService : getEvents(Optional.of(query))
+activate EventService
+EventService -> EventRepository : loadAll()
+activate EventRepository
+alt Saved data file exists
+    EventRepository -> EventRepository : loadAll(): deserialize events.bin
+    EventRepository --> EventService : List<Event>
+else No saved data file exists
+    EventRepository --> EventService : empty List<Event>
+end
+deactivate EventRepository
+EventService --> EventListGUI : List<Event>
+deactivate EventService
+
+note right of EventListGUI
+refresh() clears eventTableModel,
+adds one row per displayed event,
+then updates the status label.
+end note
+EventListGUI -> EventListGUI : setStatus(event count + query)
+activate EventListGUI
+EventListGUI --> EventListGUI : status updated
+deactivate EventListGUI
+deactivate EventListGUI
+
+EventListGUI --> Organizer : event list window visible
+deactivate EventListGUI
+
+@enduml

@@ -1,0 +1,70 @@
+@startuml
+title SD-04B — Sort Events (GUI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-12 — Sort Events
+endlegend
+
+actor Organizer
+boundary "eventListGUI : EventListGUI" as EventListGUI
+control "eventService : EventService" as EventService
+entity "query : EventQuery" as EventQuery
+database "repository : EventRepository\n(FileEventRepository)" as EventRepository
+
+Organizer -> EventListGUI : choose sort field / direction
+activate EventListGUI
+EventListGUI -> EventListGUI : applySort()
+activate EventListGUI
+
+alt cboSortField selected index <= 0
+    EventListGUI -> EventQuery : clearSort()
+    activate EventQuery
+    EventQuery --> EventListGUI : sort cleared
+    deactivate EventQuery
+else Sort field selected
+    note right of EventListGUI
+    applySort() assigns query.sortField and sets
+    query.sortDirection from cboSortDirection.
+    end note
+end
+
+EventListGUI -> EventListGUI : refresh()
+activate EventListGUI
+EventListGUI -> EventService : getEvents(Optional.of(query))
+activate EventService
+EventService -> EventRepository : loadAll()
+activate EventRepository
+EventRepository --> EventService : List<Event>
+deactivate EventRepository
+opt query.hasFilter()
+    EventService -> EventService : applyFilter(result, q)
+    activate EventService
+    EventService --> EventService : filtered List<Event>
+    deactivate EventService
+end
+EventService -> EventService : applySort(result, q)
+activate EventService
+EventService --> EventService : sorted List<Event>
+deactivate EventService
+EventService --> EventListGUI : sorted List<Event>
+deactivate EventService
+EventListGUI -> EventListGUI : setStatus(event count + query)
+activate EventListGUI
+EventListGUI --> EventListGUI : status updated
+deactivate EventListGUI
+EventListGUI --> Organizer : display sorted event list
+deactivate EventListGUI
+
+deactivate EventListGUI
+deactivate EventListGUI
+
+@enduml

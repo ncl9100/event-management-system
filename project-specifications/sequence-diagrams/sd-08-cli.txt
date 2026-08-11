@@ -1,0 +1,86 @@
+@startuml
+title SD-08A — Delete Event (CLI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-06 — Delete Event
+UC-14 — Confirm Event Deletion
+endlegend
+
+actor Organizer
+boundary "eventListCLI : EventListCLI" as EventListCLI
+control "eventService : EventService" as EventService
+entity "event : Event" as Event
+database "repository : EventRepository\n(FileEventRepository)" as EventRepository
+
+Organizer -> EventListCLI : enter "delete <id>"
+activate EventListCLI
+EventListCLI -> EventListCLI : handleDelete(command)
+activate EventListCLI
+EventListCLI -> EventListCLI : readEvent(command)
+activate EventListCLI
+EventListCLI -> EventService : getEventById(id)
+activate EventService
+EventService -> EventRepository : loadAll()
+activate EventRepository
+EventRepository --> EventService : List<Event>
+deactivate EventRepository
+EventService --> EventListCLI : Optional<Event>
+deactivate EventService
+EventListCLI --> EventListCLI : Optional<Event>
+deactivate EventListCLI
+
+alt Event not found
+    EventListCLI --> Organizer : display lookup error
+else Event found
+    EventListCLI -> EventListCLI : confirm("Delete ... ?")
+    activate EventListCLI
+    EventListCLI --> Organizer : confirmation prompt incl. reservation warning
+    Organizer --> EventListCLI : yes / no
+    EventListCLI --> EventListCLI : confirmed? true / false
+    deactivate EventListCLI
+    alt Not confirmed
+        EventListCLI --> Organizer : "Nothing was deleted."
+    else Confirmed
+        EventListCLI -> EventService : deleteEvent(target.getId())
+        activate EventService
+        EventService -> EventRepository : deleteEvent(id)
+        activate EventRepository
+        EventRepository -> EventRepository : loadAll()
+        activate EventRepository
+        EventRepository --> EventRepository : List<Event>
+        deactivate EventRepository
+        opt matching id exists
+            EventRepository -> EventRepository : saveAll(events)
+            activate EventRepository
+            EventRepository --> EventRepository : persisted
+            deactivate EventRepository
+        end
+        EventRepository --> EventService : deleted = true / false
+        deactivate EventRepository
+        EventService -> EventRepository : loadAll()
+        activate EventRepository
+        EventRepository --> EventService : updated List<Event>
+        deactivate EventRepository
+        EventService --> EventListCLI : deleted = true / false
+        deactivate EventService
+        EventListCLI --> Organizer : deleted / could-not-delete message
+        ref over Organizer, EventRepository
+        SD-01A — Browse Events (CLI)
+        handleDelete() calls refresh() after deletion
+        end ref
+    end
+end
+
+deactivate EventListCLI
+deactivate EventListCLI
+
+@enduml

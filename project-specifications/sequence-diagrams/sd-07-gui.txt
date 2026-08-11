@@ -1,0 +1,173 @@
+@startuml
+title SD-07B — Edit Event (GUI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-05 — Edit Event
+UC-13 — Validate Event Information
+endlegend
+
+actor Organizer
+boundary "eventListGUI : EventListGUI" as EventListGUI
+boundary "eventGUI : EventGUI" as EventGUI
+control "eventService : EventService" as EventService
+entity "event : Event" as Event
+database "repository : EventRepository\n(FileEventRepository)" as EventRepository
+
+Organizer -> EventListGUI : select event and click "View / edit"
+activate EventListGUI
+EventListGUI -> EventListGUI : viewEvent()
+activate EventListGUI
+EventListGUI -> EventListGUI : selectedEvent()
+activate EventListGUI
+EventListGUI --> EventListGUI : selected Event / null
+deactivate EventListGUI
+
+alt selectedEvent() returns null
+    EventListGUI --> Organizer : selection message already displayed
+else Event selected
+    EventListGUI -> EventGUI : edit(selectedEvent)
+    activate EventGUI
+    EventGUI -> Event : deepCopy()
+    activate Event
+    Event --> EventGUI : working Event copy
+    deactivate Event
+    EventGUI -> EventGUI : showDialog()
+    activate EventGUI
+    EventGUI -> EventGUI : showEvent()
+    activate EventGUI
+    EventGUI --> EventGUI : form/statistics populated
+    deactivate EventGUI
+    EventGUI --> Organizer : display editable event dialog
+
+    loop While dialog remains open (until valid Save or Cancel)
+        alt Organizer edits form fields
+            Organizer -> EventGUI : change form values
+        else Organizer clicks "Manage reservations..."
+            Organizer -> EventGUI : click button
+            EventGUI -> EventGUI : manageReservations()
+            activate EventGUI
+            EventGUI -> EventGUI : readForm()
+            activate EventGUI
+            EventGUI --> EventGUI : current form copied into Event
+            deactivate EventGUI
+            ref over Organizer, Event
+            SD-09B — View Event Reservations (GUI)
+            end ref
+            EventGUI -> EventGUI : showEvent()
+            activate EventGUI
+            EventGUI --> EventGUI : form/statistics refreshed
+            deactivate EventGUI
+            deactivate EventGUI
+        else Organizer clicks "Save"
+            Organizer -> EventGUI : click "Save"
+            EventGUI -> EventGUI : save()
+            activate EventGUI
+            EventGUI -> EventGUI : readForm()
+            activate EventGUI
+            EventGUI --> EventGUI : parsing errors
+            deactivate EventGUI
+            alt readForm() returned errors
+                EventGUI -> EventGUI : showErrors(errors)
+                activate EventGUI
+                EventGUI --> Organizer : validation dialog
+                deactivate EventGUI
+            else Form parsed
+                EventGUI -> EventService : validateEvent(event) <<static>>
+                activate EventService
+                EventService --> EventGUI : List<String> errors
+                deactivate EventService
+                alt Validation errors exist
+                    EventGUI -> EventGUI : showErrors(errors)
+                    activate EventGUI
+                    EventGUI --> Organizer : validation dialog
+                    deactivate EventGUI
+                else Event valid
+                    EventGUI --> EventGUI : saved=true; dispose()
+                end
+            end
+            deactivate EventGUI
+        else Organizer clicks "Cancel"
+            Organizer -> EventGUI : click "Cancel"
+            EventGUI -> EventGUI : abort()
+            activate EventGUI
+            EventGUI --> EventGUI : saved=false; dispose()
+            deactivate EventGUI
+        end
+    end
+
+    alt saved == true
+        EventGUI --> EventGUI : Optional.of(event)
+    else saved == false
+        EventGUI --> EventGUI : Optional.empty()
+    end
+    deactivate EventGUI
+    EventGUI --> EventListGUI : Optional<Event>
+    deactivate EventGUI
+
+    alt edited.isPresent()
+        EventListGUI -> EventService : updateEvent(editedEvent)
+        activate EventService
+        EventService -> EventService : validateEvent(editedEvent)
+        activate EventService
+        EventService --> EventService : no errors / errors
+        deactivate EventService
+        alt ValidationException
+            EventService --> EventListGUI : throw ValidationException
+            EventListGUI -> EventListGUI : showErrors("The changes could not be saved", errors)
+            activate EventListGUI
+            EventListGUI --> Organizer : error dialog
+            deactivate EventListGUI
+        else Event valid
+            EventService -> EventRepository : updateEvent(editedEvent)
+            activate EventRepository
+            EventRepository -> EventRepository : loadAll()
+            activate EventRepository
+            EventRepository --> EventRepository : List<Event>
+            deactivate EventRepository
+            EventRepository -> Event : deepCopy()
+            activate Event
+            Event --> EventRepository : replacement copy
+            deactivate Event
+            opt matching id exists
+                EventRepository -> EventRepository : saveAll(events)
+                activate EventRepository
+                EventRepository --> EventRepository : persisted
+                deactivate EventRepository
+            end
+            EventRepository --> EventService : updated = true / false
+            deactivate EventRepository
+            EventService -> EventRepository : loadAll()
+            activate EventRepository
+            EventRepository --> EventService : updated List<Event>
+            deactivate EventRepository
+            EventService --> EventListGUI : updated = true / false
+            alt updated == true
+                EventListGUI -> EventListGUI : setStatus("Saved event <id>.")
+            else updated == false
+                EventListGUI -> EventListGUI : setStatus("Event <id> no longer exists.")
+            end
+        end
+        deactivate EventService
+    else edited.isPresent() == false
+        EventListGUI --> Organizer : no changes saved
+    end
+
+    ref over Organizer, EventRepository
+    SD-01B — Browse Events (GUI)
+    viewEvent() calls refresh() after the dialog closes
+    end ref
+end
+
+deactivate EventListGUI
+deactivate EventListGUI
+
+@enduml

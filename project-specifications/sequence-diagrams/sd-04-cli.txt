@@ -1,0 +1,71 @@
+@startuml
+title SD-04A — Sort Events (CLI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-12 — Sort Events
+endlegend
+
+actor Organizer
+boundary "eventListCLI : EventListCLI" as EventListCLI
+control "eventService : EventService" as EventService
+entity "query : EventQuery" as EventQuery
+database "repository : EventRepository\n(FileEventRepository)" as EventRepository
+
+Organizer -> EventListCLI : enter "sortby <field> [asc|desc]"
+activate EventListCLI
+EventListCLI -> EventListCLI : handleSortBy(command)
+activate EventListCLI
+
+alt command.argCount() < 1
+    EventListCLI --> Organizer : display usage error
+else EventSortField.fromLabel(...) returns null
+    EventListCLI --> Organizer : display supported sort fields
+else Valid sort request
+    note right of EventListCLI
+    handleSortBy() assigns query.sortField and
+    query.sortDirection (ASCENDING or DESCENDING).
+    end note
+    EventListCLI -> EventListCLI : refresh()
+    activate EventListCLI
+    EventListCLI -> EventService : getEvents(Optional.of(query))
+    activate EventService
+    EventService -> EventRepository : loadAll()
+    activate EventRepository
+    EventRepository --> EventService : List<Event>
+    deactivate EventRepository
+    opt query.hasFilter()
+        EventService -> EventService : applyFilter(result, q)
+        activate EventService
+        EventService --> EventService : filtered List<Event>
+        deactivate EventService
+    end
+    EventService -> EventService : applySort(result, q)
+    activate EventService
+    note right of EventService
+    applySort() uses a stable insertion sort;
+    belongsAfter() / compareByField() determine order.
+    end note
+    EventService --> EventService : sorted List<Event>
+    deactivate EventService
+    EventService --> EventListCLI : sorted List<Event>
+    deactivate EventService
+    EventListCLI -> EventListCLI : showEvents()
+    activate EventListCLI
+    EventListCLI --> Organizer : display sorted event list
+    deactivate EventListCLI
+    deactivate EventListCLI
+end
+
+deactivate EventListCLI
+deactivate EventListCLI
+
+@enduml

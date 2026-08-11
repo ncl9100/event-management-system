@@ -1,0 +1,95 @@
+@startuml
+title SD-11B — Edit Reservation (GUI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-09 — Edit Reservation
+UC-16 — Validate Attendee Information
+endlegend
+
+actor Organizer
+boundary "reservationListGUI : ReservationListGUI" as ReservationListGUI
+boundary "reservationGUI : ReservationGUI" as ReservationGUI
+control "eventService : EventService" as EventService
+entity "event : Event" as Event
+entity "reservation : Reservation" as Reservation
+
+Organizer -> ReservationListGUI : select attendee and click "Edit"
+activate ReservationListGUI
+ReservationListGUI -> ReservationListGUI : editReservation()
+activate ReservationListGUI
+ReservationListGUI -> ReservationListGUI : selectedIndex()
+activate ReservationListGUI
+ReservationListGUI --> ReservationListGUI : index / -1
+deactivate ReservationListGUI
+
+alt index < 0
+    ReservationListGUI --> Organizer : selection message already displayed
+else Valid selection
+    ReservationListGUI -> Event : getReservations().get(index)
+    activate Event
+    Event --> ReservationListGUI : original Reservation
+    deactivate Event
+    ReservationListGUI -> ReservationGUI : edit(event, original)
+    activate ReservationGUI
+    ReservationGUI -> ReservationGUI : indexOf(event, original)
+    activate ReservationGUI
+    ReservationGUI --> ReservationGUI : editingIndex
+    deactivate ReservationGUI
+    ReservationGUI -> Reservation : deepCopy()
+    activate Reservation
+    Reservation --> ReservationGUI : working Reservation copy
+    deactivate Reservation
+    ReservationGUI -> ReservationGUI : showDialog()
+    activate ReservationGUI
+
+    ref over Organizer, EventService
+    SD-10B — Shared Reservation Dialog / Validation Flow
+    Follow the showDialog() / save() portion of SD-10B:
+    showReservation(), readForm(), validateReservation(),
+    isDuplicateEmail(), showErrors(), and save-or-cancel closure.
+    For edit, editingIndex is skipped during duplicate checking.
+    end ref
+
+    alt saved == true
+        ReservationGUI --> ReservationGUI : Optional.of(working Reservation)
+    else saved == false
+        ReservationGUI --> ReservationGUI : Optional.empty()
+    end
+    deactivate ReservationGUI
+    ReservationGUI --> ReservationListGUI : Optional<Reservation>
+    deactivate ReservationGUI
+
+    alt edited.isPresent()
+        ReservationListGUI -> Event : getReservations().set(index, edited)
+        activate Event
+        Event --> ReservationListGUI : reservation replaced
+        deactivate Event
+    else edited.isPresent() == false
+        ReservationListGUI --> Organizer : original reservation unchanged
+    end
+
+    ReservationListGUI -> ReservationListGUI : showReservations()
+    activate ReservationListGUI
+    ReservationListGUI --> Organizer : updated attendee table
+    deactivate ReservationListGUI
+end
+
+note over ReservationListGUI, Event
+Editing is performed on a Reservation deep copy;
+abort leaves the original unchanged. Persistence waits
+until the enclosing event is saved.
+end note
+
+deactivate ReservationListGUI
+deactivate ReservationListGUI
+
+@enduml

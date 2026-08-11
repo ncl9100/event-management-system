@@ -1,0 +1,92 @@
+@startuml
+title SD-05A — View Event Details and Statistics (CLI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-04 — View Event Details and Statistics
+endlegend
+
+actor Organizer
+boundary "eventListCLI : EventListCLI" as EventListCLI
+boundary "eventCLI : EventCLI" as EventCLI
+control "eventService : EventService" as EventService
+control "EventStatistics" as EventStatistics
+entity "event : Event" as Event
+database "repository : EventRepository\n(FileEventRepository)" as EventRepository
+
+Organizer -> EventListCLI : enter "view <id>"
+activate EventListCLI
+EventListCLI -> EventListCLI : handleViewOrEdit(command)
+activate EventListCLI
+EventListCLI -> EventListCLI : readEvent(command)
+activate EventListCLI
+EventListCLI -> EventService : getEventById(id)
+activate EventService
+EventService -> EventRepository : loadAll()
+activate EventRepository
+EventRepository --> EventService : List<Event>
+deactivate EventRepository
+EventService --> EventListCLI : Optional<Event>
+deactivate EventService
+EventListCLI --> EventListCLI : Optional<Event>
+deactivate EventListCLI
+
+alt Event not found
+    EventListCLI --> Organizer : display lookup error
+else Event found
+    EventListCLI -> EventCLI : edit(event)
+    activate EventCLI
+    EventCLI -> Event : deepCopy()
+    activate Event
+    Event --> EventCLI : working Event copy
+    deactivate Event
+    EventCLI -> EventCLI : editLoop("Event <id>")
+    activate EventCLI
+    EventCLI -> EventCLI : showEvent()
+    activate EventCLI
+    EventCLI --> Organizer : display event details
+    deactivate EventCLI
+
+    opt Organizer enters "stats"
+        Organizer -> EventCLI : stats command
+        EventCLI -> EventCLI : showStatistics()
+        activate EventCLI
+        EventCLI -> EventStatistics : occupancyRateOf(event)
+        activate EventStatistics
+        EventStatistics --> EventCLI : occupancy rate
+        deactivate EventStatistics
+        EventCLI -> EventStatistics : durationInMinutesOf(event)
+        activate EventStatistics
+        EventStatistics --> EventCLI : duration minutes
+        deactivate EventStatistics
+        EventCLI -> EventStatistics : describeTimeUntilStart(event)
+        activate EventStatistics
+        EventStatistics --> EventCLI : timing description
+        deactivate EventStatistics
+        EventCLI --> Organizer : display event statistics
+        deactivate EventCLI
+    end
+
+    Organizer -> EventCLI : abort / cancel / quit
+    EventCLI --> EventCLI : Optional.empty()
+    deactivate EventCLI
+    EventCLI --> EventListCLI : Optional.empty()
+    deactivate EventCLI
+    ref over Organizer, EventRepository
+    SD-01A — Browse Events (CLI)
+    handleViewOrEdit() calls refresh() before returning
+    end ref
+end
+
+deactivate EventListCLI
+deactivate EventListCLI
+
+@enduml

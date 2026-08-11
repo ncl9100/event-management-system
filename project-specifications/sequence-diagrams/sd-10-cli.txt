@@ -1,0 +1,128 @@
+@startuml
+title SD-10A — Add Reservation (CLI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-08 — Add Reservation
+UC-15 — Check Available Capacity
+UC-16 — Validate Attendee Information
+endlegend
+
+actor Organizer
+boundary "reservationListCLI : ReservationListCLI" as ReservationListCLI
+boundary "reservationCLI : ReservationCLI" as ReservationCLI
+control "eventService : EventService" as EventService
+entity "event : Event" as Event
+entity "reservation : Reservation" as Reservation
+
+Organizer -> ReservationListCLI : enter "add"
+activate ReservationListCLI
+ReservationListCLI -> ReservationListCLI : handleAdd()
+activate ReservationListCLI
+ReservationListCLI -> EventService : canAddReservation(event) <<static>>
+activate EventService
+EventService --> ReservationListCLI : true / false
+deactivate EventService
+
+alt No available capacity
+    ReservationListCLI --> Organizer : capacity/full error
+else Capacity available
+    ReservationListCLI -> ReservationCLI : create(event)
+    activate ReservationCLI
+    ReservationCLI -> Reservation : new Reservation()
+    activate Reservation
+    Reservation --> ReservationCLI : new reservation
+deactivate Reservation
+    ReservationCLI -> Reservation : setDateRegistered(LocalDateTime.now())
+    activate Reservation
+    Reservation --> ReservationCLI : registration date set
+    deactivate Reservation
+    ReservationCLI -> ReservationCLI : editLoop(reservation, "New reservation")
+    activate ReservationCLI
+
+    loop While reservation is not accepted and organizer has not aborted
+        ReservationCLI --> Organizer : prompt "reservation> "
+        Organizer -> ReservationCLI : enter command
+        alt command = "set <field> <value>"
+            ReservationCLI -> ReservationCLI : handleSet(command, reservation)
+            activate ReservationCLI
+            ReservationCLI --> Organizer : field updated / input error
+            deactivate ReservationCLI
+        else command = "show"
+            ReservationCLI -> ReservationCLI : showReservation(reservation)
+            activate ReservationCLI
+            ReservationCLI --> Organizer : current reservation
+            deactivate ReservationCLI
+        else command = "save"
+            ReservationCLI -> ReservationCLI : trySave(reservation)
+            activate ReservationCLI
+            ReservationCLI -> EventService : validateReservation(reservation) <<static>>
+            activate EventService
+            EventService --> ReservationCLI : List<String> errors
+            deactivate EventService
+            alt Validation errors exist
+                ReservationCLI --> Organizer : printErrors(errors)
+                ReservationCLI --> ReservationCLI : false
+            else Attendee information valid
+                ReservationCLI -> ReservationCLI : isDuplicateEmail(reservation)
+                activate ReservationCLI
+                ReservationCLI --> ReservationCLI : duplicate? true / false
+                deactivate ReservationCLI
+                alt Duplicate email
+                    ReservationCLI --> Organizer : already-registered error
+                    ReservationCLI --> ReservationCLI : false
+                else Unique email
+                    ReservationCLI --> Organizer : "Reservation accepted."
+                    ReservationCLI --> ReservationCLI : true
+                end
+            end
+            deactivate ReservationCLI
+        else command = abort / cancel / quit
+            ReservationCLI --> Organizer : "Aborted. No changes were kept."
+        else other command
+            ReservationCLI --> Organizer : unknown-command/help output
+        end
+    end
+
+    alt Reservation accepted
+        ReservationCLI --> ReservationCLI : Optional.of(reservation)
+    else Organizer aborted
+        ReservationCLI --> ReservationCLI : Optional.empty()
+    end
+    deactivate ReservationCLI
+    ReservationCLI --> ReservationListCLI : Optional<Reservation>
+    deactivate ReservationCLI
+
+    alt created.isPresent()
+        ReservationListCLI -> Event : getReservations().add(reservation)
+        activate Event
+        Event --> ReservationListCLI : reservation added
+        deactivate Event
+        ReservationListCLI --> Organizer : added-attendee message
+    else created.isPresent() == false
+        ReservationListCLI --> Organizer : no reservation added
+    end
+
+    ReservationListCLI -> ReservationListCLI : showReservations()
+    activate ReservationListCLI
+    ReservationListCLI --> Organizer : updated attendee list
+    deactivate ReservationListCLI
+end
+
+note over ReservationListCLI, Event
+Only the working Event copy changes here.
+Persistence occurs when the enclosing event is saved.
+end note
+
+deactivate ReservationListCLI
+deactivate ReservationListCLI
+
+@enduml

@@ -1,0 +1,84 @@
+@startuml
+title SD-09A — View Event Reservations (CLI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-07 — View Event Reservations
+endlegend
+
+actor Organizer
+boundary "eventCLI : EventCLI" as EventCLI
+boundary "reservationListCLI : ReservationListCLI" as ReservationListCLI
+entity "event : Event" as Event
+
+Organizer -> EventCLI : enter "reservations"
+activate EventCLI
+EventCLI -> EventCLI : handleReservations()
+activate EventCLI
+EventCLI -> ReservationListCLI : run(event)
+activate ReservationListCLI
+ReservationListCLI -> Event : deepCopy()
+activate Event
+Event --> ReservationListCLI : working Event copy
+deactivate Event
+ReservationListCLI -> ReservationListCLI : showReservations()
+activate ReservationListCLI
+ReservationListCLI --> Organizer : display attendee list / empty message
+deactivate ReservationListCLI
+
+loop While organizer has not chosen done/save or abort/quit
+    Organizer -> ReservationListCLI : enter reservation-list command
+    alt command = "list"
+        ReservationListCLI -> ReservationListCLI : showReservations()
+        activate ReservationListCLI
+        ReservationListCLI --> Organizer : display attendee list
+        deactivate ReservationListCLI
+    else command = "add"
+        ref over Organizer, Event
+        SD-10A — Add Reservation (CLI)
+        end ref
+    else command = "edit <row>"
+        ref over Organizer, Event
+        SD-11A — Edit Reservation (CLI)
+        end ref
+    else command = "delete/cancel <row>"
+        ref over Organizer, Event
+        SD-12A — Delete Reservation (CLI)
+        end ref
+    else command = done / save
+        ReservationListCLI --> Organizer : reservation changes kept message
+    else command = abort / quit
+        ReservationListCLI --> Organizer : reservation changes discarded message
+    end
+end
+
+alt done / save
+    ReservationListCLI --> EventCLI : Optional.of(working Event)
+else abort / quit
+    ReservationListCLI --> EventCLI : Optional.empty()
+end
+deactivate ReservationListCLI
+
+alt Updated Event returned
+    EventCLI -> Event : setReservations(updated.get().getReservations())
+    activate Event
+    Event --> EventCLI : reservations adopted
+    deactivate Event
+end
+EventCLI -> EventCLI : showEvent()
+activate EventCLI
+EventCLI --> Organizer : refreshed event details
+deactivate EventCLI
+
+deactivate EventCLI
+deactivate EventCLI
+
+@enduml

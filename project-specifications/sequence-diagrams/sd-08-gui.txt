@@ -1,0 +1,77 @@
+@startuml
+title SD-08B — Delete Event (GUI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-06 — Delete Event
+UC-14 — Confirm Event Deletion
+endlegend
+
+actor Organizer
+boundary "eventListGUI : EventListGUI" as EventListGUI
+control "eventService : EventService" as EventService
+entity "event : Event" as Event
+database "repository : EventRepository\n(FileEventRepository)" as EventRepository
+
+Organizer -> EventListGUI : select event and click "Delete"
+activate EventListGUI
+EventListGUI -> EventListGUI : deleteEvent()
+activate EventListGUI
+EventListGUI -> EventListGUI : selectedEvent()
+activate EventListGUI
+EventListGUI --> EventListGUI : selected Event / null
+deactivate EventListGUI
+
+alt selectedEvent() returns null
+    EventListGUI --> Organizer : selection message already displayed
+else Event selected
+    EventListGUI --> Organizer : JOptionPane.showConfirmDialog(...)
+    Organizer --> EventListGUI : YES / NO
+    alt answer != YES_OPTION
+        EventListGUI --> Organizer : leave event unchanged
+    else answer == YES_OPTION
+        EventListGUI -> EventService : deleteEvent(selected.getId())
+        activate EventService
+        EventService -> EventRepository : deleteEvent(id)
+        activate EventRepository
+        EventRepository -> EventRepository : loadAll()
+        activate EventRepository
+        EventRepository --> EventRepository : List<Event>
+        deactivate EventRepository
+        opt matching id exists
+            EventRepository -> EventRepository : saveAll(events)
+            activate EventRepository
+            EventRepository --> EventRepository : persisted
+            deactivate EventRepository
+        end
+        EventRepository --> EventService : deleted = true / false
+        deactivate EventRepository
+        EventService -> EventRepository : loadAll()
+        activate EventRepository
+        EventRepository --> EventService : updated List<Event>
+        deactivate EventRepository
+        EventService --> EventListGUI : deleted = true / false
+        deactivate EventService
+        EventListGUI -> EventListGUI : setStatus(deletion result)
+        activate EventListGUI
+        EventListGUI --> EventListGUI : status updated
+        deactivate EventListGUI
+        ref over Organizer, EventRepository
+        SD-01B — Browse Events (GUI)
+        deleteEvent() calls refresh() after deletion
+        end ref
+    end
+end
+
+deactivate EventListGUI
+deactivate EventListGUI
+
+@enduml

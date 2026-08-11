@@ -1,0 +1,96 @@
+@startuml
+title SD-11A — Edit Reservation (CLI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-09 — Edit Reservation
+UC-16 — Validate Attendee Information
+endlegend
+
+actor Organizer
+boundary "reservationListCLI : ReservationListCLI" as ReservationListCLI
+boundary "reservationCLI : ReservationCLI" as ReservationCLI
+control "eventService : EventService" as EventService
+entity "event : Event" as Event
+entity "reservation : Reservation" as Reservation
+
+Organizer -> ReservationListCLI : enter "edit <row>"
+activate ReservationListCLI
+ReservationListCLI -> ReservationListCLI : handleEdit(command)
+activate ReservationListCLI
+ReservationListCLI -> ReservationListCLI : readIndex(command)
+activate ReservationListCLI
+ReservationListCLI --> ReservationListCLI : index / -1
+deactivate ReservationListCLI
+
+alt index < 0
+    ReservationListCLI --> Organizer : row error already displayed
+else Valid row
+    ReservationListCLI -> Event : getReservations().get(index)
+    activate Event
+    Event --> ReservationListCLI : original Reservation
+    deactivate Event
+    ReservationListCLI -> ReservationCLI : edit(event, original)
+    activate ReservationCLI
+    ReservationCLI -> ReservationCLI : indexOf(event, original)
+    activate ReservationCLI
+    ReservationCLI --> ReservationCLI : editingIndex
+    deactivate ReservationCLI
+    ReservationCLI -> Reservation : deepCopy()
+    activate Reservation
+    Reservation --> ReservationCLI : working Reservation copy
+    deactivate Reservation
+    ReservationCLI -> ReservationCLI : editLoop(workingReservation, "Edit reservation")
+    activate ReservationCLI
+
+    ref over Organizer, EventService
+    SD-10A — Shared Reservation Edit/Validation Flow
+    Follow the editLoop(...) / trySave(...) portion:
+    handleSet(), showReservation(), validateReservation(),
+    isDuplicateEmail(), and save-or-abort termination.
+    For edit, editingIndex is skipped during duplicate checking.
+    end ref
+
+    alt Edited reservation accepted
+        ReservationCLI --> ReservationCLI : Optional.of(working Reservation)
+    else Organizer aborted
+        ReservationCLI --> ReservationCLI : Optional.empty()
+    end
+    deactivate ReservationCLI
+    ReservationCLI --> ReservationListCLI : Optional<Reservation>
+    deactivate ReservationCLI
+
+    alt edited.isPresent()
+        ReservationListCLI -> Event : getReservations().set(index, edited)
+        activate Event
+        Event --> ReservationListCLI : reservation replaced
+        deactivate Event
+        ReservationListCLI --> Organizer : updated-attendee message
+    else edited.isPresent() == false
+        ReservationListCLI --> Organizer : original reservation unchanged
+    end
+
+    ReservationListCLI -> ReservationListCLI : showReservations()
+    activate ReservationListCLI
+    ReservationListCLI --> Organizer : updated attendee list
+    deactivate ReservationListCLI
+end
+
+note over ReservationListCLI, Event
+Editing is performed on a Reservation deep copy;
+abort leaves the original unchanged. Persistence waits
+until the enclosing event is saved.
+end note
+
+deactivate ReservationListCLI
+deactivate ReservationListCLI
+
+@enduml

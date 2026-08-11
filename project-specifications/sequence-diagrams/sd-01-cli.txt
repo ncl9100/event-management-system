@@ -1,0 +1,56 @@
+@startuml
+title SD-01A — Browse Events (CLI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-02 — Browse Events
+endlegend
+
+actor Organizer
+boundary "eventListCLI : EventListCLI" as EventListCLI
+control "eventService : EventService" as EventService
+database "repository : EventRepository\n(FileEventRepository)" as EventRepository
+
+alt Application initially starts
+    Organizer -> EventListCLI : run()
+else Organizer enters "list"
+    Organizer -> EventListCLI : list command
+end
+activate EventListCLI
+
+EventListCLI -> EventListCLI : refresh()
+activate EventListCLI
+EventListCLI -> EventService : getEvents(Optional.of(query))
+activate EventService
+EventService -> EventRepository : loadAll()
+activate EventRepository
+alt Saved data file exists
+    EventRepository -> EventRepository : loadAll(): deserialize events.bin
+    EventRepository --> EventService : List<Event>
+else No saved data file exists
+    EventRepository --> EventService : empty List<Event>
+end
+deactivate EventRepository
+EventService --> EventListCLI : List<Event>
+deactivate EventService
+
+EventListCLI -> EventListCLI : showEvents()
+activate EventListCLI
+alt displayedEvents.isEmpty()
+    EventListCLI --> Organizer : display empty-list message
+else Events exist
+    EventListCLI --> Organizer : display events table
+end
+deactivate EventListCLI
+deactivate EventListCLI
+deactivate EventListCLI
+
+@enduml

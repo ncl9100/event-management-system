@@ -1,0 +1,64 @@
+@startuml
+title SD-02A — Search for Event (CLI)
+
+<style>
+legend {
+    BackgroundColor #FFF2CC
+    LineColor #D6B656
+    FontColor black
+}
+</style>
+
+legend top center
+Covers:
+UC-03 — Search for Event
+endlegend
+
+actor Organizer
+boundary "eventListCLI : EventListCLI" as EventListCLI
+control "eventService : EventService" as EventService
+entity "query : EventQuery" as EventQuery
+database "repository : EventRepository\n(FileEventRepository)" as EventRepository
+
+Organizer -> EventListCLI : enter "search <text>"
+activate EventListCLI
+EventListCLI -> EventListCLI : handleSearch(command)
+activate EventListCLI
+
+alt command.argCount() < 1
+    EventListCLI --> Organizer : display usage error
+else Search text provided
+    note right of EventListCLI
+    handleSearch() assigns:
+    query.filterField = TITLE
+    query.filterValue = command.argsFrom(0)
+    end note
+    EventListCLI -> EventListCLI : refresh()
+    activate EventListCLI
+    EventListCLI -> EventService : getEvents(Optional.of(query))
+    activate EventService
+    EventService -> EventRepository : loadAll()
+    activate EventRepository
+    EventRepository --> EventService : List<Event>
+    deactivate EventRepository
+    EventService -> EventService : applyFilter(result, q)
+    activate EventService
+    note right of EventService
+    applyFilter() performs a case-insensitive
+    substring match on TITLE for this use case.
+    end note
+    EventService --> EventService : filtered List<Event>
+    deactivate EventService
+    EventService --> EventListCLI : filtered List<Event>
+    deactivate EventService
+    EventListCLI -> EventListCLI : showEvents()
+    activate EventListCLI
+    EventListCLI --> Organizer : display matching events / no-match message
+    deactivate EventListCLI
+    deactivate EventListCLI
+end
+
+deactivate EventListCLI
+deactivate EventListCLI
+
+@enduml
